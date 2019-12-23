@@ -1,0 +1,793 @@
+= RHCSA for RHEL7
+
+[.lead]
+All of this content is started from the objectives enumerated here:
+
+https://www.redhat.com/en/services/training/ex200-red-hat-certified-system-administrator-rhcsa-exam
+
+The commands below are pulled from a combination of Googling for said, and/or books on RHEL7, specifically:
+
+* Red Hat RHCSA/RHCE 7 Cert Guide: Red Hat Enterprise Linux by Sander Van Vugt
+
+** ISBN-13: 978-0-7897-5405-9 
+
+* RHCSA & RHCE Red Hat Enterprise Linux 7: Training and Exam Preparation Guide, Third Edition, by Asghar Ghori
+
+** ISBN: 978-1-4951-4820-0
+
+**_IMPORTANT:_**
+
+**When you take the exam, all of the content on the exam is bound by the certification's Terms of Service. Which includes a privacy policy, stating that it is against the Terms of Service to provide information or exact tasks that are performed inside of the certification.** 
+
+This Cheatsheet uses the Objectives listed on the Official Red Hat site to list out the objectives, and then shows **_a way_** to solve those objectives from the command line. It is noteworthy of expressing, that some of the commands don't explain what they do. This cheatsheet is for myself. The commands are to joggle my memory and the commands needed to accomplish the goal. If you don't understand what the command does, please read the man or info page on the command or topic. Run the commands inside of a virtual machine with a snapshot of the baseline install. That way, if you mess up, you can reset the VM back to the snapshot.
+
+This file is also a living document in that as I find new ways to solve these objectives, I will update this document without violating the Terms of Service.
+
+[[TOC]]
+== Table of Contents
+    * <<essential-tools,Understand and use essential tools>>
+    * <<op-running-sys,Operate running systems>>
+    * <<cnf-lcl-strg,Configure local storage>>
+    * <<conf-file-sys,Create and configure file systems>>
+    * <<dply-conf-maint-sys,Deploy, configure, and maintain systems>>
+    * <<mng-bsc-ntwrk,Manage basic networking>>
+    * <<mng-usrs-grps,Manage users and groups>>
+    * <<mng-sec,Manage security>>
+    * <<random-nonsense, Random Nonsense>>
+
+
+[[essential-tools]]
+== Understand and use essential tools
+
+=== Access a shell prompt and issue commands with correct syntax
+
+  Right click on the desktop, in the menu, click on Terminal.
+
+=== Use input-output redirection (>, >>, |, 2>, etc.)
+[source,bash]
+----
+$ cat /etc/motd /etc/issue > /tmp/foo.txt
+$ command 2>/dev/null  # <1>
+$ command &>> /tmp/output.log  # <2>
+$ command 2>&1 | grep "command"  # <3>
+----
+<1> redirect errors to /dev/null
+<2> redirect both errors and standard out to a file, appending to it.
+<3> redirect std err to std out, then pipe both in one stream to the second command.
+
+=== Use grep and regular expressions to analyze text
+[source,bash]
+----
+$ grep "string1" <filename>  # <1>
+$ 
+$ grep -i ^o.*,$ lotr.txt  # <2>
+$ grep -i ^[o,i] lotr.txt
+$ 
+$ grep -n -E '^O|l{2}' lotr.txt
+2:Seven for the Dwarf-lords in their halls of stone,
+4:One for the Dark Lord on his dark throne
+6:One Ring to rule them all, One Ring to find them,
+7:One Ring to bring them all, and in the darkness bind them,
+----
+<1> Grep is super usefull for either finding a string or removing a string (with the *_-v_* flag).
+<2> Use *_-i_* to make the search case insenitive.
+
+=== Access remote systems using SSH
+[source,bash]
+----
+$ ssh-keygen -t rsa -b 4096  # <1>
+$ ssh-copy-id -i ~/.ssh/<identity_file> <user>@<hostname>  # <2>
+$ 
+$ ssh -v student@server1
+$ 
+$ scp local_file <user>@<hostname>:/tmp/destination_filename
+$ scp <user>@<hostname>:/tmp/source_file_name  /home/user/local_destination_filename
+$
+$ sftp <user>@<hostname>
+> ls file1
+> get file1
+> mkdir test
+> put my_local_filename
+> quit | bye | exit
+$
+$ ssh -X <user>@<hostname>    ## ssh in with xterm enabled
+----
+<1> Create a key, _type_ is *rsa*, _bit_ size is *4096*.
+<2> Copy the public key to the remote target.
+
+=== Log in and switch users in multiuser targets
+[source,bash]
+----
+$ su - student2
+$ 
+$ sudo su -
+$ whoami
+----
+
+=== Archive, compress, unpack, and uncompress files using tar, star, gzip, and bzip2
+.Archive, compress, unpack, and uncompress files using tar, star, gzip, and bzip2
+[cols="5m,2,2a", options="header", width="98%"]
+|===
+| Command | Description | Notes
+
+|tar -cvzf /tmp/my_archive.tgz /home/my_user/files.* |Create archive, compress, verbose mode | the default file extension most people use is *_.tgz_*.
+|tar -xzvf /tmp/my_archive.tgz |Extract, compressed, verbose | 
+|tar -xzvf ./homes.tar.gz -C /tmp/ |Extract, compressed, verbose to destination directory | the *_-C_* option will write the contents of the archive, in this case to the /tmp dir.
+
+|star -c -f=myarchive.tar directory1/ file1 file2| Create a tar archive|Must remember the *_-f=_* flag for file.
+|star -t -f=myachive.tar |Test archive|Must remember the *_-f=_* flag for file.
+|star -x -f=myarhive.tar |Extract archive|Must remember the *_-f=_* flag for file.
+
+|gzip /tmp/some.file |Create compressed file |The default file extension is *_.gz_*
+|gunzip /tmp/some.file.gz |Extract compressed file | 
+
+|bzip2 /tmp/some.file |Create compressed file |bzip2 optimizes compression on text based files, but de-optimizes compression horribly on binary files 
+|bunzip2 /tmp/some.file.bz2 |Extract compressed file | 
+|===
+
+=== Create and edit text files
+
+  I highly recommend learning the vi command. 
+  It is literally on every UNIX and Linux system.
+  You could use 'nano' as a third party editor, 
+    but when you boot into single user mode, 
+    third party tools are not available.
+  Spend some time learning 'vi' and the different modes. 
+  'vimtutor' is your friend here. It will teach you everything you need to know. <1>
+  If it is not installed, run: 'sudo yum whatprovides vimtutor',
+  and install that package.
+
+<1> Again, *_vimtutor_* is one of the most useful tools for learning _vi_. 
+[source,bash]
+----
+$ touch <filename>
+$
+$ vi <filename>
+ :wq to exit with save
+ :q! to exit without saving
+----
+
+
+=== Create, delete, copy, and move files and directories
+.Create, delete, copy, and move files and directories
+[cols="1m,1a", options="header", width="98%"]
+|===
+| Command | Description
+
+| cp <source> <target> |copy a file
+
+| cp -r <source> <target> |copy a directory recursively
+
+| mv <source> <target> |move/rename a file
+
+| rm <file> | remove a file
+
+| rm -rf <dir> | remove a directory
+
+| mkdir <path> | create a directory
+|===
+
+=== Create hard and soft links
+.Create hard and soft links
+[cols="2m,1,1a", options="header", width="98%"]
+|===
+| Command | Description | Notes
+
+| ln <source> <target> | hard link a file |remember this: Hard links cannot cross partitions or devices. 
+
+| ln -s <source_dir> <target_dir> | symbolic link a directory to a target name |Symbolic links *_can_* cross partitions and devices. I was trained 20 years ago to always use symbolic links. This might have changed, but it is a practice I still use today.
+|===
+
+.Examples of using hard and soft links
+[cols="1m,2a", options="header", width="98%"]
+|===
+| Command | Notes
+|$ echo "RHCSA" > ${HOME}/sandbox
+
+$ ln ${HOME}/sandbox /tmp/hardlink1
+|Hard link a file - again, memorize the pattern "<source> <target>"
+
+|$ mkdir ${HOME}/mydir
+
+$ touch ${HOME}/mydir/myfile
+
+$ ln -s ${HOME}/mydir /tmp/symdir
+|Create a symbolic link between a directory and a target name to access said directory.
+|===
+
+
+=== List, set, and change standard ugo/rwx permissions
+.List, set, and change standard ugo/rwx permissions
+[cols="1m,1a", options="header", width="98%"]
+|===
+| Command | Description
+
+|ls |List files
+
+|ls -l|Long list files
+
+|ls -a |Show hidden files *_starts with a dot_*
+
+|umask [notation]
+
+e.g.
+
+umask 0022
+
+*OR*
+
+umask u=,g=w,o=wx
+|umask is a command that determines the settings of a mask that controls how file permissions are set for newly created files. [notation] is either Octal or Symbolic. Read the man page if this doesn't make sense -> _man bash_ -> /umask.
+
+|chmod [notation] <filename>|change file mode bits. Notation can be Octal or Symbolic.
+|===
+Examples
+[source,bash]
+----
+$ cd /tmp/
+$
+$ umask 0022  # <1>
+$ 
+$ touch file{1,2,3,4}  # <2>
+$ ls -l file*
+$ 
+$ chmod 0444 file1
+$ chmod u=rx,g=rx,o=r file2
+$ chmod u=rw,g=r,o=r file3
+$ chmod u=rwx,g=rwx,o= file4
+$ ls -l file*
+----
+<1> A righteous umask!
+<2> A slick way to create multiple files.
+
+
+=== Locate, read, and use system documentation including man, info, and files in /usr/share/doc
+.Locate, read, and use system documentation including man, info, and files in /usr/share/doc
+[cols="1m,2a", options="header", width="98%"]
+|===
+| Command | Description
+
+|[command] --help |Print the help page for a given command. A standard for most C programs is to have a help page printed with --help.
+
+|man [arg] |print the man page for a command
+
+|mandb |update the man page database
+
+|man -f [arg] |display a short description from the man page, if available
+|man -k [arg] |search for [arg] in title and description
+|man -K [arg] |search for [arg] in page contents
+
+|apropos [string] |search the man page titles and descriptions for string
+
+|info coreutils 'ls invocation' |show information, try: info -> info coreutils -> info coreutils 'ls invocation'
+|===
+
+<<TOC,Return to Top>>
+
+
+[[op-running-sys]]
+== Operate running systems
+
+=== Boot, reboot, and shut down a system normally
+.Boot, reboot, and shut down a system normally
+[cols="1m,2a", options="header", width="98%"]
+|===
+| Command | Description
+|init 0 |From *_SystemV_*, this will cause the system to halt. 
+*Warning*, if you are in AWS, this will not power the system off.
+
+|init 6 |From *_SystemV_*, this will cause the system to reboot.
+
+|shutdown -h now |This command will _halt_ the system. 
+*Warning*, if you are in AWS, this will not power the system off.
+
+|shutdown -r now |This command will _reboot_ the system.
+
+|reboot |This command will _reboot_ the system.
+|===
+
+=== Boot systems into different targets manually
+.Boot systems into different targets manually
+[cols="1m,1a", options="header", width="98%"]
+|===
+| Command | Description
+|systemctl -t help|Show what types are available. I am using mostly services & targets.
+
+|systemctl get-default |Return the default target to boot into. This returns the target unit name default.target is aliased (symlinked) to.
+
+|systemctl set-default rescue.target |Set system to automatically boot into rescue target. Boots into Single-User environment with minimal required services loaded in order to troubleshoot.
+
+|systemctl set-default emergency.target | Set system to automatically boot into emergency target. Boots into a read-only filesystem.
+
+|systemctl set-default multi-user |Boot into the old *_SystemV_* run level 3. Basically, allowing networking, but no GUI. 
+
+|systemctl set-default graphical.target |Boot up with GUI. If you don't need a GUI, use the target above for *_multi-user_*.
+
+|systemctl list-units --type target --all |Show all possible targets to choose from. Be careful playin with these.
+
+The directory, *_/usr/lib/systemd/system/_*, stores all of unit configuration files.
+|systemctl list-dependencies multi-user.target|List out dependencies.
+|===
+
+=== Identify CPU/memory intensive processes and kill processes
+.Identify CPU/memory intensive processes and kill processes
+[cols="2m,3a", options="header", width="98%"]
+|===
+| Command | Description
+|top|display Linux processes. hit *_h_* once the program is running to see options.
+
+|pgrep -l <pattern>|look up processes based on name and other attributes, *_-l_* prints the name of the running command.
+|pkill [option] <pattern>|signal processes based on name and other attributes. send the Hangup Signal, *_-HUP_*.
+
+|ps -ef|see every process on the system using standard syntax.
+|ps aux \| less |see every process on the system using BSD syntax. <- This is what I normally use and pipe to _less_. 
+|ps -ejH|Print a process tree.
+|===
+=== Interrupt the boot process in order to gain access to a system
+.Interrupt the boot process in order to gain access to a system
+[cols="1m,1a", options="header", width="98%"]
+|===
+| Sequence | Notes
+
+|Stop the boot loader -> 
+
+'e' ->
+
+scroll down to line starting with: linux16
+
+append at the end of the line: 'rd.break' -> 
+
+key-sequence: CTRL+X ->
+
+mount -o remount,rw /sysroot ->
+
+chroot /sysroot ->
+
+passwd root ->
+
+touch /.autorelabel -> 
+
+exit -> exit
+|This looks like a fairly complicated mess, but it is easy to perform:
+
+* Stop the boot sequence with any key, then press 'e' for edit mode.
+
+* use the arrow keys to navigate down and append to the line.
+
+* once booted, you are in a Read-Only state, you can verify this with the command 'mount'
+
+* change the mounted state of '/sysroot' to Read-Write
+
+* chroot runs an interactive shell within a special root directory
+
+* adjust the passwd
+
+* *_YOU MUST_* touch the '/.autorelabel' file in order to trigger SELinux to relabel the FS, otherwise this won't work correctly on reboot.
+
+* exit out twice, the system will then boot into the normal runlevel/target mode.
+|===
+
+=== Adjust process scheduling
+.Adjust process scheduling
+[cols="1m,1a,2", options="header", width="98%"]
+|===
+| Command | Description | Notes
+|top|display Linux processes|*_top_* provides a dynamic real-time view of a running system.
+|nice [OPTION] [COMMAND]
+
+sudo nice -n -17 ./my_program
+|run a program with modified scheduling priority|Use *_nice_* to start a process with an altered Priority.
+
+in the second example, I am saying to use '-17' for my value. I was taught never to use *_-20_* unless you are running a real-time system, e.g. factory manufactoring line.
+
+|renice [-n] priority identifier
+
+sudo renice -n -10 <PID>
+|alter priority of running processes|I always use the -n to adjust the priority. Remember, this takes from the current Priority value and then adds or subtracts from that value the number you specified. I just tested this with a number running at +20, so my negative ten then adjusted the priority to postive ten from the original value. 
+|===
+=== Locate and interpret system log files and journals
+.Locate and interpret system log files and journals
+[cols="1m,1a,2", options="header", width="98%"]
+|===
+| Command | Description | Notes
+|systemd-analyze |Analyze system boot-up performance|
+|systemd-analyze blame |prints a list of all running units, ordered by the time they took to initialize|
+
+|systemctl list-units --state=failed|Query the systemd system |List known units and filter to show only failed units,
+
+|journalctl -b |Query the systemd journal | show all the events since the last boot
+|journalctl -u sshd.service ||focus on a specific service
+|journalctl -xe ||Augment log lines with explanation texts from the message catalog. Immediately jump to the end of the journal inside the implied pager tool.
+
+|||
+|===
+
+
+=== Preserve system journals
+
+Journald logs are stored in the /run/log/journal directory and disappear after a reboot by default.
+To persistt Journald logs across reboots, perform the following sequence:
+```
+# mkdir /var/log/journal
+# echo "SystemMaxUse=512M" >> /etc/systemd/journald.conf
+# systemctl restart systemd-journald 
+```
+*_Important_* Setting the _SystemMaxUse_ variable is necessary because otherwise 10% of the filesystem where the /var/log/journal directory is stored may be used at maximum by the journal.
+
+=== Start, stop, and check the status of network services
+.Start, stop, and check the status of network services
+[cols="2m,1a", options="header", width="98%"]
+|===
+| Command | Description
+|$ sudo systemctl status NetworkManager.service|Show the current status.
+|$ sudo systemctl start  NetworkManager.service|Start Network Services.
+|$ sudo systemctl stop   NetworkManager.service|Stop Network Services.
+|===
+
+=== Securely transfer files between systems
+.Securely transfer files between systems
+[cols="2m,1a", options="header", width="98%"]
+|===
+| Command | Description
+| $ scp file_to_transfer <username>@<target_ip>:/dest/path/| Push a file to target system.
+| $ scp <username>@<target_ip>:/src/path/file_to_get  /local/dest/| Pull a file from a target system.
+|===
+
+<<TOC,Return to Top>>
+
+
+[[cnf-lcl-strg]]
+== Configure local storage
+
+=== List, create, delete partitions on MBR and GPT disks
+.List, create, delete partitions on MBR and GPT disks
+[cols="1m,1a,2", options="header", width="98%"]
+|===
+| Command | Description | Notes
+|lsblk |list block devices |lists information about all available or the specified block devices
+|blkid |locate/print block device attributes | It can determine
+       the type of content (e.g. filesystem or swap) that a block device holds, 
+       and also the attributes (tokens, key value pairs) from the content metadata.
+
+|fdisk /dev/vdc |manipulate disk partition table |*_fdisk_* is a menu-driven program for creation and manipulation of partition tables.
+|gdisk /dev/vdc |Interactive GUID partition table (GPT) manipulator |*_gdisk_* is  a  text-mode  menu-driven program for creation and manipulation of partition tables.
+
+|fdisk -l |for listing disks and partitions |```$ sudo fdisk -l``` -> Nicely print all disks.
+|partprobe|Inform the OS of partition table changes|*_partprobe_* is a program that informs the OS kernel of partition table changes, by requesting that the OS re-read the partition table.
+|===
+
+  Working Examples of fdisk, gdisk, and partprobe.
+  If you have not used these tools before, you need to
+  setup a virtual machine and add several extra virtual disks,
+  and use both of these tools until you know them by heart.
+  If you have an older system that you must fix/adjust,
+  you might need fdisk. It works!
+  For new systems, I recommend using gdisk to perform all operations.
+  Knowing both tools, you will be able to cover all situations 
+  for formatting hard drives.
+
+[source,bash]
+----
+$ sudo fdisk /dev/sdb
+n
+p 
+Enter 
++512M
+t
+8e  # for LVM
+w
+----
+
+
+[source,bash]
+----
+$ sudo gdisk /dev/sdc
+n
+Enter
+Enter
++512M
+t
+8e00 # for LVM
+w
+----
+
+[source,bash]
+----
+$ sudo partprobe
+----
+
+
+=== Create and remove physical volumes
+```
+# fdisk /dev/vdc   # for MBR
+# gdisk /dev/vdc   # for GPT
+```
+
+=== Assign physical volumes to volume groups
+```
+# pvcreate /dev/vdc1
+# vgextend vg-test /dev/vdc1
+OR
+# vgcreate vg-new /dev/vdc1
+```
+
+=== Create and delete logical volumes
+```
+# pvcreate /dev/vdc1
+# vgcreate vg-new /dev/vdc1
+OR
+# pvmove /dev/vdc1
+# lvreduce -L 5G /dev/vg/disk-name
+# vgreduce /dev/vgc1
+```
+
+=== Configure systems to mount file systems at boot by universally unique ID (UUID) or label
+```
+# blkid     ## in this example, pulling the UUID for my /home partition. Just an example, don't copy and paste this information.
+# printf "\n##\nUUID=1a411152-90d4-4ba0-98e4-325adff2dcf2\t/home\t\text4\tdefaults,x-systemd.device-timeout=0 1 2\n" >> /etc/fstab
+# tail -n 2 /etc/fstab
+##
+UUID=1a411152-90d4-4ba0-98e4-325adff2dcf2   /home       ext4    defaults,x-systemd.device-timeout=0 1 2
+```
+=== Add new partitions and logical volumes, and swap to a system non-destructively
+You’ve got three options when adding some swap space to a system:
+
+* use a logical volume inside a volume group.
+* use a new partition.
+* use a file system.
+
+.Add new partitions and logical volumes, and swap to a system non-destructively
+[cols="2m,1", options="header", width="98%"]
+|===
+| Command | Description
+|# lvcreate --size 1G --name lv_swap vg
+
+# mkswap /dev/vg/lv_swap
+
+# swapon /dev/vg/lv_swap
+
+# swapon -s
+
+/dev/mapper/vg-lv_swap swap swap defaults 0 0
+
+## to remove the swap partition:
+
+# swapoff /dev/vg/lv_swap
+
+# lvremove /dev/vg/lv_swap
+|* create a new volume
+
+* mkswap will format the FS
+
+* activate the swap partition
+
+* view the swap partition
+|# fdisk /dev/vda
+
+# partprobe /dev/vdaX
+
+# mkswap /dev/vdaX
+
+# swapon /dev/vdaX
+
+# swapon -s
+
+/dev/vdaX swap swap defaults 0 0
+|* create your partition
+
+* partprobe to force the kernel to wake up and read the partition.
+
+* format the FS with mkswap
+
+* activate the swap partition.
+
+* check on the status of the partition.
+|===
+
+<<TOC,Return to Top>>
+
+
+[[conf-file-sys]]
+== Create and configure file systems
+
+=== Create, mount, unmount, and use vfat, ext4, and xfs file systems
+.Create, mount, unmount, and use vfat, ext4, and xfs file systems
+[cols="3m,1,2a", options="header", width="98%"]
+|===
+| Command | Description | Notes
+
+|# lvcreate --size 100M --name lv_vol /dev/vg | quickly create a new volume |
+|# mkfs.ext4 /dev/vg/lv_vol | format with file system type, EXT4 |
+|# mount /dev/vg/lv_vol /mnt|mount the FS to directory: /mnt|
+|/dev/mapper/vg-lv_vol /mnt ext4 defaults 1 2|entry for /etc/fstab|
+The last number (here 2) is related to the fsck command:
+
+- ‘0‘ means no fsck run at boot (very dangerous), 
+
+- ‘1‘ fsck is run first (root filesystem), 
+
+- ‘2‘ fsck is run just after the root filesystem. 
+
+The second to last argument is in relation with the dump command (normally set at ‘1‘ for real filesystems, ‘0‘ for swap and NFS mounted filesystems).
+|# mount -a |mount the file system by reading /etc/fstab| a good practice to make sure /etc/fstab is written correctly.
+|# fsck /dev/vg/lv_vol|FS check|On a new partition, you shouldn't need to do this.
+|# dumpe2fs /dev/vg/lv_vol|details on FS|show all of the meta information on the FS.
+
+|||
+|# lvcreate --size 100M --name lv_vol /dev/vg | quickly create a new volume |
+|# mkfs.xfs /dev/vg/lv_vol|make FS type XFS on partition|
+|# mount /dev/vg/lv_vol /mnt|mount the partition to dir /mnt| this will not survive a reboot. Use the entry below for /etc/fstab to remount on startup.
+|/dev/mapper/vg-lv_vol /mnt xfs defaults 1 2|entry for /etc/fstab|
+The last number (here 2) is related to the fsck command:
+
+- ‘0‘ means no fsck run at boot (very dangerous), 
+
+- ‘1‘ fsck is run first (root filesystem), 
+
+- ‘2‘ fsck is run just after the root filesystem. 
+
+The second to last argument is in relation with the dump command (normally set at ‘1‘ for real filesystems, ‘0‘ for swap and NFS mounted filesystems).
+|# xfs_repair /dev/vg/lv_vol|to repair inconsistencies | must unmount first
+|# xfs_info /dev/vg/lv_vol|display detailed meta data on FS|The filesystem geometry is printed.
+
+|||
+|# lvcreate --size 100M --name lv_vol /dev/vg | quickly create a new volume |
+|# mkfs.vfat /dev/vg/lv_vol|create an MS-DOS filesystem under Linux |
+|# mount /dev/vg/lv_vol /mnt|mount the partition to dir /mnt| this will not survive a reboot. Use the entry below for /etc/fstab to remount on startup.
+|/dev/mapper/vg-lv_vol /mnt vfat defaults 1 2|entry for /etc/fstab|
+The last number (here 2) is related to the fsck command:
+
+- ‘0‘ means no fsck run at boot (very dangerous), 
+
+- ‘1‘ fsck is run first (root filesystem), 
+
+- ‘2‘ fsck is run just after the root filesystem. 
+
+The second to last argument is in relation with the dump command (normally set at ‘1‘ for real filesystems, ‘0‘ for swap and NFS mounted filesystems).
+|# mount -a |mount the file system by reading /etc/fstab| a good practice to make sure /etc/fstab is written correctly.
+|# fsck.vfat /dev/vg/lv_vol|repair FS inconsistencies|must unmount first
+|===
+
+
+=== Mount and unmount network file systems using NFS
+=== Extend existing logical volumes
+=== Create and configure set-GID directories for collaboration
+=== Configure disk compression
+=== Manage layered storage
+=== Diagnose and correct file permission problems
+
+<<TOC,Return to Top>>
+
+
+[[dply-conf-maint-sys]]
+== Deploy, configure, and maintain systems
+
+=== Schedule tasks using at and cron
+=== Start and stop services and configure services to start automatically at boot
+=== Configure systems to boot into a specific target automatically
+=== Configure time service clients
+=== Install and update software packages from Red Hat Network, a remote repository, or from the local file system
+=== Schedule tasks using at and cron
+=== Work with package module streams
+=== Modify the system bootloader
+
+<<TOC,Return to Top>>
+
+
+[[mng-bsc-ntwrk]]
+== Manage basic networking
+=== Configure IPv4 and IPv6 addresses
+=== Configure hostname resolution
+=== Configure network services to start automatically at boot
+=== Restrict network access using firewall-cmd/firewall
+
+<<TOC,Return to Top>>
+
+
+[[mng-usrs-grps]]
+== Manage users and groups
+=== Create, delete, and modify local user accounts
+=== Change passwords and adjust password aging for local user accounts
+=== Create, delete, and modify local groups and group memberships
+=== Configure superuser access
+
+<<TOC,Return to Top>>
+
+
+[[mng-sec]]
+== Manage security
+=== Configure firewall settings using firewall-cmd/firewalld
+=== Configure key-based authentication for SSH
+=== Set enforcing and permissive modes for SELinux
+=== List and identify SELinux file and process context
+=== Restore default file contexts
+=== Use boolean settings to modify system SELinux settings
+=== Diagnose and address routine SELinux policy violations
+
+<<TOC,Return to Top>>
+
+
+As with all Red Hat performance-based exams, configurations must persist after reboot without intervention.
+
+
+[[random-nonsense]]
+== Random Nonsense that I discovered along the way
+
+=== Google Queries
+
+Adjust these as needed. Putting these here to show my thought process on how I found information.
+
+https://www.google.com/search?q=site%3Alinuxconfig.org+%22rhcsa-objective-preparation%22
+
+https://linuxconfig.org/study-objectives-for-the-rhcsa-exam-preparation-guide
+
+
+=== Asciidocs
+* Create HTML page from asciidocs
+[source,bash]
+----
+$ asciidoctor  -a toc=left ./README.adoc
+----
+
+<<TOC,Return to Top>>
+
+=== Generate Fake Data to fill up partition
+I used this command sequence to generate fake data on the fly to fill up a partition.
+
+Using a generic LVM2 partition that was originally setup at 240MiB in size.
+Genereate 224M of fake data to populate this volume.
+The idea is that you have a volume that is almost full and the users are 
+complaining that they need more space to do their jobs.
+
+[source,bash]
+----
+cd /finance/loans/payments
+
+time ( for YEAR in $( seq 2015 2032 ); do
+    for MONTH in $( seq -w 1 12 ); do
+        for USER in ryan josh morena julian zazie TJ leslie karan brianna jack eddie shioli stefan randal \
+        nikolai brad matt fred kodi alexandra dan scott; do
+            mkdir -p ${YEAR}/${MONTH}/${USER}
+            head -c 45K </dev/urandom > ${YEAR}/${MONTH}/${USER}/payment.record 2>/dev/null
+        done
+    done
+done )
+----
+
+
+=== Random Commands
+.Random Commands I found useful while studying
+[cols="2m,1a,2a", options="header", width="98%"]
+|===
+| Command | Description | Notes
+|findmnt|find a filesystem|findmnt  will  list  all  mounted  filesytems  or  search  for  a  filesystem.
+
+|df -hT|report file system disk space usage|the *_-h_* is human readable size, the *_-T_* shows the file system type, e.g. swap or ext4/xfs
+
+|locate <filename>|find files by name|make sure RPM 'mlocate' is installed
+
+|find / -type f -name <filename> -ls |Search for files in a directory hierarchy|Read the man page on find, this is one of the most usefull commands on UNIX/Linux.
+
+|find . -type f -print0 \| xargs -0 chmod 0640 |find from current dir up all files, then execute a chmod on them|Read up on xargs. The combination of the two with a pipe sign saves a lot of effort.
+
+|star -xattr -artype=exustar 
+
+-c -acl -p -v -not 
+
+-pattern /files/to/exclude/\* 
+
+f=/place/to/store/backup.star 
+
+<file_or_dir_to_backup> |Create *_tar_* backup with extended attributes preserved |Since tar captures these, this command is not highly used anymore. You probably won't see this ever. Here for knoweldge in case you couldn't use the modern version of tar. The command is one line. Not including the normal \ since it gets placed wrong depending on the size of the screen viewing this page.
+|star -xpV -restore -C
+
+</tmp/restore_target_location>
+
+-f <star_archive.star> |Restore archive with extended attributes |Recovery command. The command is one line. Not including the normal \ since it gets placed wrong depending on the size of the screen viewing this page.
+
+|||
+|===
+
+
+<<TOC,Return to Top>>
+
