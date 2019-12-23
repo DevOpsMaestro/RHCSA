@@ -762,6 +762,8 @@ done )
 | Command | Description | Notes
 |findmnt|find a filesystem|findmnt  will  list  all  mounted  filesytems  or  search  for  a  filesystem.
 
+|nmcli connection show|pulls: NAME  UUID  TYPE  DEVICE| I used this to get the UUID off of the network device enp0s8
+
 |df -hT|report file system disk space usage|the *_-h_* is human readable size, the *_-T_* shows the file system type, e.g. swap or ext4/xfs
 
 |locate <filename>|find files by name|make sure RPM 'mlocate' is installed
@@ -788,6 +790,135 @@ f=/place/to/store/backup.star
 |||
 |===
 
-
 <<TOC,Return to Top>>
 
+=== Weekly training schedule to retain this information
+
+Here's the deal. Every person on Earth has a different ability to retain information.
+There is a lot of information you need to bring to the table in order to pass this exam.
+In order to effectively utilize this information, you need a training schedule of doing, opposed to just reading.
+My recommendation is to use Oracle VirtualBox or a Free virtualization tool along with CentOS 7.0 ISO in order to create a lab environment.
+If you follow this path, do not make a Lab that is following the default install.
+You need a lab that has room to play with adjusting logical volumes as well as other components on the system.
+
+For one of my labs, I used the following requirements:
+
+- VM has a primary disk that is 40GB in size.
+- 2 CPUs
+- 1536MB memory
+- 2 network adapters -> one is connected to NAT, the other Host-Only
+
+I partitioned it as:
+
+.Generic Partition Table
+[cols="1a,2a,2a", options="header", width="98%"]
+|===
+|Mount Point|Size|Type
+|/boot | 384MiB  | ext3
+|swap  | 1022MiB | LVM2 -> VG is my_vg -> swap
+|/     | 9GiB    | LVM2 -> VG is my_vg -> xfs
+|===
+
+My thought process with the Generic Partition Table is that this leaves 
+plenty of room to go through and add/update/remove partitions so that I 
+have a ton of experience managing these and can do so in my sleep.
+The Volume Group `my_vg` is mapped to /dev/sda2.
+The `/boot` partition is connected to /dev/sda1.
+That's it!
+Once installed, without patching or connecting to external resources, 
+make a VM snapshot of the virtual machine (VM) and label with something like, 
+"Baseline 7.0 snapshot". This way, you have a clean install to come back to 
+and do something different with your lab.
+I also use Minimal Install when setting up.
+This forces me to know how to add software groups if I choose to upgrade or make
+the system into something different.
+
+The training schedule is my idea of how to make this into tasks I can perform daily to master these skills.
+
+.Weekly training schedule to retain this information
+[cols="1a,4a", options="header", width="98%"]
+|===
+| Weekday | Tasks
+|Sunday|
+ - Boot into Emergency mode and recovery the root password.
+ - `touch /.autorelabel`
+|Monday|
+ - add 2 new users (briana, melena), tied to the group, localadm
+ - add 1 new user (ryan), and make sure he is not in the localadm group
+ - set passwords for all 3 accounts above
+ - use `setfacl` to prevent the user (ryan) so that he cannot read/write files in the directory /opt/deadpool
+ - verify with `getfacl` and by switching accounts to ryan, try to read files in /opt/deadpool
+|Tuesday|
+ - Not using the existing partitions, add a second swap partition with the size of 1536MiB, using LVM2 and fdisk
+ - activate the new swap partition in /etc/fstab using the UUID. Hint: `blkid` is your friend
+ - reboot
+ - verify the swap partition has mounted succesfully on reboot with: `swapon -s`
+|Wednesday|
+ - install httpd RPM.
+ - open ports 80 and 443 with firewalld
+ - mask both `iptables` and `ip6tables` with `systemctl` command
+ - add dummy HTML file into: `/var/www/html/dummy.html`, verify you can access with the curl command: `curl -v -k -L http://localhost/dummy.html`
+ - reboot
+ - is the dummy HTML still being displayed?
+|Thursday|
+ - Not using the existing partitions or logical volumes, 
+ - add three new partitions, each with a size of 4GiB
+ - tie each to a unique Volume Group name (separate)
+ - tie each to a unique Logical Volume name (separate)
+ - mount each using the UUID in /etc/fstab
+ - each must use a different File System type, choose from (ext2, ext3, ext4, xfs, btrfs)
+ - delete one of the new Logical Volumes and Volume Groups and recreate so that the VG has a physical extent size of 32MiB. The customer wants to store large image files here.
+ - reboot
+ - does all mounts survive a reboot?
+|Friday|
+ - using `ip a` annotate your current network address settings
+ - using the command line tool `nmtui`
+ - change your Internet facing network adaptor from Automatic to manual, set a static IP address, the Gateway address, the Network Mask, and the DNS address to `8.8.4.4` for IPv4 Configuration
+ - add a second IP address, like `10.10.10.10` to your Internet facing network adaptor. The subnet for said needs to be `255.255.255.0`
+ - reboot
+ - verify configurations persisted with `ip a`
+|Saturday|
+ - perform tasks that you feel weak with performing
+ - catch all day
+|===
+
+Generate dummy data for training:
+
+Monday - as the root user
+[source,bash]
+----
+umask 0022
+mkdir -p /opt/deadpool
+cd /opt/deadpool
+
+cat << 'EOF' > /opt/deadpool/plot_summary
+Wade Wilson is a small-time mercenary. He meets Vanessa and falls in love. Life is idyllic until one day he is diagnosed with terminal cancer. Things look bleak but a man appears who says he can be cured, through a treatment that gives him superhero powers. After initially turning him down, Wilson agrees, and meets the man behind the project, Ajax. While undergoing the treatment he discovers that it will involve him becoming a mutant, and he will need to undergo several painful tests to discover what his mutant abilities are. Plus, Ajax is a sadist. The treatment results in Wilson getting powers of accelerated healing but also leaves him terribly disfigured. Ajax tries to keep him a prisoner but he escapes. He now has two aims: find Vanessa and make Ajax pay for what he did to him. Killing Ajax may not be as easy it seems, as Ajax is also a mutant and the meddling superhero Colossus and his sidekick Negasonic Teenage Warhead keep getting in the way. Oh, and Wade Wilson is now operating under an alias: Deadpool.
+EOF
+
+cat << 'EOF' > /opt/deadpool/synopsis
+The opening scene shows Wade Wilson, the superhero Deadpool (Ryan Reynolds) in a cab, bored in the backseat. He slides up front to chat with the cabbie, Dopinder (Karan Soni). Deadpool asks Dopinder about a picture of a girl he has in his car, and Dopinder says she was his girlfriend until he lost her to his cousin. Dopinder then takes Deadpool to the middle of a bridge, and Deadpool stiffs the man for cab fare.
+
+Deadpool waits on top of a bridge for his targets, but first addresses the audience and jokes about fondling Wolverine's balls to get his own movie. He then spots a group of vans arriving, and he jumps into one of the men before beating up of all the thugs in the van, causing an accident that kills other villains. Deadpool's main target is Ajax (Ed Skrein), the man that gave him his powers and also horribly disfigured him. The vans all come crashing to the end of the bridge, where one thug's head is sliced off with a motorcycle chain, and another one is gorily splattered against a sign on the highway.
+
+At Xavier's School For Gifted Youngsters, Colossus (Stefan Kapicic) sees the chaos unfolding on the news and calls Negasonic Teenage Warhead (Brianna Hildebrand) to join him in getting Deadpool.
+
+Deadpool is upset because he forgot his bag of weapons and only has 12 rounds in his gun. He counts off how many rounds with each thug he kills, accidentally missing a few shots, but he manages to kill three men with one bullet. One last thug comes at Deadpool with two knives, but Deadpool quickly skewers him. Deadpool then points out that this is a different kind of superhero movie, and that we need to go back for him to tell it properly.
+
+Flashback to one year earlier....
+EOF
+----
+
+Change permissions above to match your users that you added. If the user (ryan) can read either of these documents, then you failed. Both brianna and melena need to be able to read/write to both documents.
+I like to use:
+
+- `su - melena`
+- `su - brianna`
+- `su - ryan`
+
+- `$ cat /opt/deadpool/plot_summary`
+- `$ cat /opt/deadpool/synopsis`
+- `$ echo ${USER} >> /opt/deadpool/${USER}.txt`
+
+to move around accounts. the `su -` forces you to "Starts the shell as login shell with an environment similar to a real login". this is just a good practice in general. `man su` to see more. The final three commands are here so I can cut and paste into a terminal using SSH to access the virtual machine. (ryan) should not be able to perform the last three commands.
+
+<<TOC,Return to Top>>
