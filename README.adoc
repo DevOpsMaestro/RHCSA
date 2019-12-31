@@ -662,6 +662,27 @@ The second to last argument is in relation with the dump command (normally set a
 [[dply-conf-maint-sys]]
 == Deploy, configure, and maintain systems
 
+=== Basic Kernel Management
+The commands you need to know in order to manage a dynamic kernel.
+
+*_NOTE: This information is useful to know, however, hardware initialization is not included in the objectives for RHCSA or RHCE version 7._*
+
+[source,bash]
+----
+$ dmesg
+$ cat /etc/redhat-release
+$ uname -r
+$ uname -a
+$ journalctl -k            # is equivelant to journalctl --dmesg
+$ udevadm monitor
+$ lsmod                    # List currently loaded kernel modules
+$ modinfo                  # Displays information about kernel modules -- 'modinfo e1000'
+$ modprobe                 # Loads kernel modules, including all of their dependencies
+$ modprobe -r              # Unloads kernel modules, considering kernel module dependencies
+$ lspci                    # list PCI hardware
+----
+
+
 === Configure systems to boot into a specific target automatically
 === Configure time service clients
 === Install and update software packages from Red Hat Network, a remote repository, or from the local file system
@@ -669,6 +690,9 @@ The second to last argument is in relation with the dump command (normally set a
 === Schedule tasks using at and cron
 === Start and stop services and configure services to start automatically at boot
 === Work with package module streams
+
+
+
 
 <<TOC,Return to Top>>
 
