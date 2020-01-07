@@ -818,7 +818,7 @@ f=/place/to/store/backup.star
 
 === Time Services
 .Time Services
-[cols="2m,2a,2a", options="header", width="98%"]
+[cols="2m,1a,2a", options="header", width="98%"]
 |===
 | Command | Description | Notes
 |yum install -y ntp|Install ntp daemon|
