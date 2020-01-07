@@ -815,6 +815,33 @@ f=/place/to/store/backup.star
 
 <<TOC,Return to Top>>
 
+
+=== Time Services
+.Time Services
+[cols="2m,2a,2a", options="header", width="98%"]
+|===
+| Command | Description | Notes
+|yum install -y ntp|Install ntp daemon|
+|systemctl mask chronyd.service|disable the default time service|
+|date|show system time and date|
+|hwclock|show hardware clock time|
+|hwclock -c|show the difference between the hardware and system time|
+|hwclock --systohc|sync system time to hardware clock|
+|hwclock --hctosys|sync hardware clock to system time|
+|timedatectl|control system clock|
+|timedatectl status|show current time| I prefer using date for this
+|timedatectl set-time 13:14:00|set the current time to 13:14:00|
+|timedatectl list-timezones|list out timezones|
+|timedatectl set-timezone ZONE|set the current timezone| ZONE could be America/New_York or Europe/London
+|tzselect|select the timezone from a list|
+|ntpdate <FQDN>|set the date and time with NTP from time source|you have to stop the ntpd service before running this
+|ntpdate -b <FQDN>|force  the  time  to be stepped to current time immediately|usually used in scripts when the system is booted
+|ntpdate -B <FQDN>|force the time to be slewed|this is what we should use. this will gradually allow the system clock to catch up so records/logs don't get large gaps
+|ntpd -gq|sync the system clock|the '-q' allows the time to be set to any value without restriction
+|===
+
+<<TOC,Return to Top>>
+
 === Weekly training schedule to retain this information
 
 Here's the deal. Every person on Earth has a different ability to retain information.
